@@ -56,9 +56,7 @@ static inline void AOA_setValues(AOA_plug_S *aoaPlug) {
 * @retval   Nothing
 *******************************************************************************/
 void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t number) {
-
-    //< Configure timer TODO: Check parameters
-    //TimerConfigure();
+    //TimerConfigure(GPTIMER_A);
 
     // TODO: Write EEPROM read function
 
@@ -76,6 +74,6 @@ void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel) {
 
 #endif // AOA_DRIVER_C
 
-/*********************************************************************************************************
+/*******************************************************************************
  *                       END OF FILE
- ********************************************************************************************************/
+ ******************************************************************************/
