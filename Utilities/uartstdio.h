@@ -1,11 +1,11 @@
 /******************************************************************************
-*  Filename:       systick.h
-*  Revised:        $Date: 2013-01-21 15:25:21 +0100 (Mon, 21 Jan 2013) $
-*  Revision:       $Revision: 9178 $
+*  Filename:       uartstdio.h
+*  Revised:        $Date: 2013-04-08 17:38:20 +0200 (Mon, 08 Apr 2013) $
+*  Revision:       $Revision: 9684 $
 *
-*  Description:    Prototypes for the SysTick driver.
+*  Description:    Prototypes for the UART console functions.
 *
-*  Copyright (C) 2012 Texas Instruments Incorporated - http://www.ti.com/
+*  Copyright (C) 2013 Texas Instruments Incorporated - http://www.ti.com/
 *
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -37,10 +37,10 @@
 *
 ******************************************************************************/
 
-#ifndef __SYSTICK_H__
-#define __SYSTICK_H__
+#ifndef __UARTSTDIO_H__
+#define __UARTSTDIO_H__
 
-#include "hw_types.h"
+#include <stdarg.h>
 
 //*****************************************************************************
 //
@@ -53,22 +53,44 @@ extern "C"
 {
 #endif
 
-#include "hw_types.h"
+//*****************************************************************************
+//
+// If built for buffered operation, the following labels define the sizes of
+// the transmit and receive buffers respectively.
+//
+//*****************************************************************************
+#ifdef UART_BUFFERED
+#ifndef UART_RX_BUFFER_SIZE
+#define UART_RX_BUFFER_SIZE     128
+#endif
+#ifndef UART_TX_BUFFER_SIZE
+#define UART_TX_BUFFER_SIZE     1024
+#endif
+#endif
 
 //*****************************************************************************
 //
 // Prototypes for the APIs.
 //
 //*****************************************************************************
-extern void SysTickEnable(void);
-extern void SysTickDisable(void);
-extern void SysTickIntRegister(void (*pfnHandler)(void));
-extern void SysTickIntUnregister(void);
-extern void SysTickIntEnable(void);
-extern void SysTickIntDisable(void);
-extern void SysTickPeriodSet(uint32_t ui32Period);
-extern uint32_t SysTickPeriodGet(void);
-extern uint32_t SysTickValueGet(void);
+extern void UARTStdioConfig(uint32_t ui32Port, uint32_t ui32Baud, 
+                            uint32_t ui32SrcClock); 
+extern void UARTStdioInit(uint32_t ui32Port); 
+extern void UARTStdioInitExpClk(uint32_t ui32Port, uint32_t ui32Baud); 
+extern int UARTgets(char *pcBuf, uint32_t ui32Len); 
+extern unsigned char UARTgetc(void); 
+extern void UARTprintf(const char *pcString, ...); 
+extern void UARTvprintf(const char *pcString, va_list vaArgP); 
+extern int UARTwrite(const char *pcBuf, uint32_t ui32Len); 
+#ifdef UART_BUFFERED
+extern int UARTPeek(unsigned char ucChar); 
+extern void UARTFlushTx(bool bDiscard); 
+extern void UARTFlushRx(void);
+extern int UARTRxBytesAvail(void); 
+extern int UARTTxBytesFree(void); 
+extern void UARTEchoSet(bool bEnable);
+extern void UARTStdioIntHandler(void);
+#endif
 
 //*****************************************************************************
 //
@@ -79,4 +101,4 @@ extern uint32_t SysTickValueGet(void);
 }
 #endif
 
-#endif // __SYSTICK_H__
+#endif // __UARTSTDIO_H__
