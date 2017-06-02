@@ -17,37 +17,43 @@ static AOA_plug_S aoaPlug;
 * @retval   Nothing
 *******************************************************************************/
 int main(void) {
-    
     // Clock
     SysCtrlClockSet(false, false, SYS_CTRL_SYSDIV_32MHZ);
 
     // I/O clock
     SysCtrlIOClockSet(SYS_CTRL_SYSDIV_32MHZ);
 
+    // Initialize UART
+    INIT_uart();
+
+    UARTprintf("Start");
 
     // Initialize delay
     INIT_delay(GPTIMER_B ,SYS_CTRL_PERIPH_GPT0, GPTIMER0_BASE,
                TIMER_0B_CONFIGURATION);
-
-    // Initialize UART
-    INIT_uart();
 
     // GPIO_PIN_1 is connected to LED1 (orange) -> Used only for testing
     // GPIO_PIN_0 is connected to LED0 (red)
     //      |
     //      --> Removed jumper, used for AOA
     // For reference: swru321b.pdf and swrr143.pdf
-    GPIOPinTypeGPIOOutput(GPIO_C_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+    GPIOPinTypeGPIOOutput(GPIO_C_BASE, GPIO_PIN_1);
+    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
 
-    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
-
-    UARTprintf("Test1212");
+    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, GPIO_PIN_1);
 
 
 
+
+
+    /* SysCtrlDelay()
+     * 1 loop           = 3 cycles
+     * 1 cycle          = 3.125 * 10^-8
+     * 1 microsecond    = 32 cycles
+     */
     for(;;) {
-
+        //delay_SysCtrlDelay(10666666);
+        //UARTprintf("Start");
     }
 }
 
@@ -70,7 +76,6 @@ void INIT_uart(void) {
     // UART0
     UARTStdioInit(0);
 }
-
 
 
 

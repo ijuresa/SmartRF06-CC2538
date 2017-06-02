@@ -9,6 +9,7 @@
 //! Low lvl
 #include "hw_memmap.h"
 #include "hw_ioc.h"
+#include "hw_ints.h"
 
 //! Driver includes
 #include "sys_ctrl.h"
@@ -32,7 +33,7 @@
 //! Timer
 #define TIMER_0B_CONFIGURATION  GPTIMER_CFG_SPLIT_PAIR      \
                                 | GPTIMER_CFG_A_ONE_SHOT    \
-                                | GPTIMER_CFG_B_ONE_SHOT
+                                | GPTIMER_CFG_B_PERIODIC
 
 //! Debug
 #define SERIAL_DEBUG    1
