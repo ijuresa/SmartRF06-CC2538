@@ -12,16 +12,24 @@
  ******************************************************************************/
 static volatile bool tBIntFlag = false;
 
+/*******************************************************************************
+* @brief
+********************************************************************************
+* @retval   Nothing
+*******************************************************************************/
+void Timer0BIntHandler(void) {
+    // Clear Timer interrupt flag
+    TimerIntClear(GPTIMER0_BASE, GPTIMER_TIMB_TIMEOUT);
+}
 
 /*******************************************************************************
 * @brief
 ********************************************************************************
 * @retval   Nothing
 *******************************************************************************/
-void TimerIntHandler(void) {
-    //TimerIntClear(, ui32IntFlags);
+void delay_SysCtrlDelay(uint32_t delay) {
+    SysCtrlDelay(delay);
 }
-
 
 /*******************************************************************************
 * @brief
@@ -38,24 +46,22 @@ void INIT_delay(uint32_t timer, uint32_t timerPeripheral, uint32_t timerBase,
     TimerConfigure(timerBase, timerConfiguration);
 
     // Set Timer load value to 1ms
-    TimerLoadSet(timerBase, timer, SysCtrlClockGet() / TICK_RATE);
+    TimerLoadSet(timerBase, timer, SysCtrlClockGet() / RATE);
 
     // Register handler
-    TimerIntRegister(timerBase, timer, TimerIntHandler);
+    TimerIntRegister(timerBase, timer, Timer0BIntHandler);
 
     // Enable processor interrupts
     IntMasterEnable();
 
-    // Check if timer A, B or both is used and set interrupt as timer timeout
-    if(timer == GPTIMER_A) {
-        TimerIntEnable(timerBase, GPTIMER_TIMA_TIMEOUT);
-        IntEnable(INT_);
-    }
-    else if(timer == GPTIMER_B) {
-        TimerIntEnable(timerBase, GPTIMER_TIMB_TIMEOUT);
-    }
-    else TimerIntEnable(timerBase, GPTIMER_TIMA_TIMEOUT | GPTIMER_TIMB_TIMEOUT);
+    // Set interrupt as timer timeout
+    TimerIntEnable(timerBase, GPTIMER_TIMB_TIMEOUT);
+    IntEnable(INT_TIMER0B);
 
+    // Enable
+    TimerEnable(timerBase, timer);
+
+    //while(!tBIntFlag);
 
 }
 
