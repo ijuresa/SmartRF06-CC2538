@@ -13,9 +13,11 @@
 static volatile bool tBIntFlag = false;
 
 /*******************************************************************************
-* @brief
+* @brief    Interrupt handler for timer
 ********************************************************************************
-* @retval   Nothing
+* @return   Nothing
+********************************************************************************
+* @date     2017-05-28
 *******************************************************************************/
 void Timer0BIntHandler(void) {
     // Clear Timer interrupt flag
@@ -23,18 +25,31 @@ void Timer0BIntHandler(void) {
 }
 
 /*******************************************************************************
-* @brief
+* @brief    Delay function using SYS clock
+* @note     Usage:
+*               1 loop           = 3 cycles
+*               1 cycle          = 3.125 * 10^-8
+*               1 microsecond    = 32 cycles
+*
+* @example  For 1 second delay:
+*               (((1 * 1 000 000) * 32) / 3) = 10 666 667
+* @example  For 50 microsecond delay:
+*               ((50 * 32) / 3) = 533
 ********************************************************************************
-* @retval   Nothing
+* @return   Nothing
+********************************************************************************
+* @date     2017-05-29
 *******************************************************************************/
 void delay_SysCtrlDelay(uint32_t delay) {
     SysCtrlDelay(delay);
 }
 
 /*******************************************************************************
-* @brief
+* @brief    Initialize Timer
 ********************************************************************************
-* @retval   Nothing
+* @return   Nothing
+********************************************************************************
+* @date     2017-05-28
 *******************************************************************************/
 void INIT_delay(uint32_t timer, uint32_t timerPeripheral, uint32_t timerBase,
                  uint32_t timerConfiguration) {
@@ -62,7 +77,6 @@ void INIT_delay(uint32_t timer, uint32_t timerPeripheral, uint32_t timerBase,
     TimerEnable(timerBase, timer);
 
     //while(!tBIntFlag);
-
 }
 
 #endif // delay_c_
