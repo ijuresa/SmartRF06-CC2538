@@ -41,9 +41,9 @@ int main(void) {
     //      |
     //      --> Removed jumper, used for AOA
     // For reference: swru321b.pdf and swrr143.pdf
-    GPIOPinTypeGPIOOutput(GPIO_C_BASE, GPIO_PIN_1);
-    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
 
+   GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
+//
     GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, GPIO_PIN_1);
 
     RF06_error_E err = ERR_OK;

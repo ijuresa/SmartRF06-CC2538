@@ -21,7 +21,9 @@
  *                       CONSTANTS
  ******************************************************************************/
 #define AOA_INPUTS_NUM      12  //< Number of phototransistors on aoa sensor
-#define AOA_SWITCH_DELAY    5   //< Delay until next phototransistor is selected in ms
+
+// Delay is 5 ms
+#define AOA_SWITCH_DELAY    53333 //< Delay until next phototransistor is selected
 #define AOA_NOISE_THRESHOLD 2
 #define AOA_I_MARGIN        8   //< Margin of section I when calculating aoa
 #define AOA_III_MARGIN      8   //< Margin of section I when calculating aoa
@@ -37,12 +39,23 @@
 #define MAXVALTHR_EEPROM_ADDR       (uint8_t*)(CALIBRATION_EEPROM_ADDR + 31)
 
 // Pin used to communicate with multiplexer
-#define MULTIPLEXER_COMMUNICATION_PIN       GPIO_PIN_0
-#define MULTIPLEXER_COMMUNICATION_PIN_BASE  GPIO_C_BASE
-#define ZERO_VALUE                          0u
+#define MULTIPLEXER_COMMUNICATION_PIN_PORT1     GPIO_PIN_0
+#define MULTIPLEXER_COMMUNICATION_PIN_PORT2     GPIO_PIN_1
+
+#define MULTIPLEXER_COMMUNICATION_PIN_BASE      GPIO_C_BASE
+
+// AOA Ports
+#define AOA_PORT1   1u
+#define AOA_PORT2   2u
+
+// GPIO
+#define SET_LOW     0u
+#define SET_HIGH    1u
+
 /*******************************************************************************
  *                       DATA STRUCTURES
  ******************************************************************************/
+//! Main AOA structure
 typedef struct AOA_plug_STRUCT {
     uint8_t led;
     uint8_t portNumber;
@@ -70,7 +83,6 @@ typedef struct AOA_plug_STRUCT {
     uint16_t threshold; //TODO: Changed from int - check for overflow
 } AOA_plug_S;
 
-
 /*******************************************************************************
  *                       MACROS
  ******************************************************************************/
@@ -81,12 +93,13 @@ typedef struct AOA_plug_STRUCT {
  ******************************************************************************/
 #ifdef AOA_DRIVER_C
 
-
-
     static void AOA_setValues(AOA_plug_S *aoaPlug);
 
     // Output functions - need to be changed when porting to another MCU
-    static void digitalWrite();
+    static void digitalWrite(uint8_t portNumber, uint8_t value,
+                             RF06_error_E *err);
+    static void setGpioModeInput(uint8_t gpioPin, RF06_error_E *err);
+    static void INIT_Gpio();
 
 
 #endif
@@ -94,9 +107,13 @@ typedef struct AOA_plug_STRUCT {
 /*******************************************************************************
  *                       PUBLIC FUNCTION PROTOTYPES
  ******************************************************************************/
-void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber, RF06_error_E *err);
-void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel);
-void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray);
+void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
+                  RF06_error_E *err);
+
+void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err);
+void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray,
+                    RF06_error_E *err);
+
 void AOA_setThreshold(AOA_plug_S *aoaPlug);
 
 
