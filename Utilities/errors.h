@@ -5,6 +5,7 @@
 //!< Error enumerator
 typedef enum RF06_error_ENUM {
   ERR_OK,
+  ERR_AOA_WRONG_PORT,
 
 } RF06_error_E;
 

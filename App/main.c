@@ -14,7 +14,9 @@ static AOA_plug_S aoaPlug;
 * @brief    Program start
 *           Initialize clock, various peripherals
 ********************************************************************************
-* @retval   Nothing
+* @return   Nothing
+********************************************************************************
+* @date   2017-05-15
 *******************************************************************************/
 int main(void) {
     // Clock
@@ -26,7 +28,9 @@ int main(void) {
     // Initialize UART
     INIT_uart();
 
+#if SERIAL_DEBUG
     UARTprintf("Start");
+#endif
 
     // Initialize delay
     INIT_delay(GPTIMER_B ,SYS_CTRL_PERIPH_GPT0, GPTIMER0_BASE,
@@ -42,25 +46,20 @@ int main(void) {
 
     GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, GPIO_PIN_1);
 
+    RF06_error_E err = ERR_OK;
+    INIT_aoaPlug(&aoaPlug, AOA_PORT_NUMBER, &err);
 
-
-
-
-    /* SysCtrlDelay()
-     * 1 loop           = 3 cycles
-     * 1 cycle          = 3.125 * 10^-8
-     * 1 microsecond    = 32 cycles
-     */
     for(;;) {
-        //delay_SysCtrlDelay(10666666);
-        //UARTprintf("Start");
+
     }
 }
 
 /*******************************************************************************
 * @brief    Set UART0 interface for console usage
 ********************************************************************************
-* @retval   Nothing
+* @return   Nothing
+********************************************************************************
+* @date   2017-05-15
 *******************************************************************************/
 void INIT_uart(void) {
     // Transmit
@@ -76,8 +75,6 @@ void INIT_uart(void) {
     // UART0
     UARTStdioInit(0);
 }
-
-
 
 /*******************************************************************************
  *                       END OF FILE

@@ -5,9 +5,17 @@
 /*******************************************************************************
  *                       INCLUDE FILES
  ******************************************************************************/
+// Standard
 #include <stdint.h>
+#include <math.h>
+
+// Drivers
+#include "gpio.h"
+
+// Local
 #include "errors.h"
-#include "gptimer.h"
+#include "delay.h"
+
 
 /*******************************************************************************
  *                       CONSTANTS
@@ -28,11 +36,16 @@
 #define P0III_EEPROM_ADDR           (CALIBRATION_EEPROM_ADDR + 19)
 #define MAXVALTHR_EEPROM_ADDR       (uint8_t*)(CALIBRATION_EEPROM_ADDR + 31)
 
+// Pin used to communicate with multiplexer
+#define MULTIPLEXER_COMMUNICATION_PIN       GPIO_PIN_0
+#define MULTIPLEXER_COMMUNICATION_PIN_BASE  GPIO_C_BASE
+#define ZERO_VALUE                          0u
 /*******************************************************************************
  *                       DATA STRUCTURES
  ******************************************************************************/
 typedef struct AOA_plug_STRUCT {
     uint8_t led;
+    uint8_t portNumber;
 
     //!< Calibration params - float not supported - check for overflow
     float P1I;
@@ -41,9 +54,8 @@ typedef struct AOA_plug_STRUCT {
     float CW_CCW[31];
 
     //!< Bias for section I and III
-    //TODO: Changed from float check for overflow
-    uint16_t P0I[AOA_INPUTS_NUM];
-    uint16_t P0III[AOA_INPUTS_NUM];
+    float P0I[AOA_INPUTS_NUM];
+    float P0III[AOA_INPUTS_NUM];
 
     //!< Minimum value of maximum incident light accepted as reliable measurement
     uint16_t MAX_VAL_THRESHOLD;
@@ -60,19 +72,36 @@ typedef struct AOA_plug_STRUCT {
 
 
 /*******************************************************************************
+ *                       MACROS
+ ******************************************************************************/
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01u)
+
+/*******************************************************************************
  *                       GLOBAL AND STATIC VARIABLES
  ******************************************************************************/
 #ifdef AOA_DRIVER_C
+
+
+
     static void AOA_setValues(AOA_plug_S *aoaPlug);
+
+    // Output functions - need to be changed when porting to another MCU
+    static void digitalWrite();
+
+
 #endif
 
 /*******************************************************************************
  *                       PUBLIC FUNCTION PROTOTYPES
  ******************************************************************************/
-void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t number);
+void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber, RF06_error_E *err);
 void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel);
 void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray);
 void AOA_setThreshold(AOA_plug_S *aoaPlug);
+
+
+
+
 
 
 // TODO: The rest
