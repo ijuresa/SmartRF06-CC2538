@@ -52,6 +52,8 @@
 #define SET_LOW     0u
 #define SET_HIGH    1u
 
+#define PI 3.141592653589793238462643383
+
 /*******************************************************************************
  *                       DATA STRUCTURES
  ******************************************************************************/
@@ -93,7 +95,10 @@ typedef struct AOA_plug_STRUCT {
  ******************************************************************************/
 #ifdef AOA_DRIVER_C
 
-    static void AOA_setValues(AOA_plug_S *aoaPlug);
+    static void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err);
+    static uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug);
+    static float AOA_calculateAoa(AOA_plug_S *aoaPlug);
+    void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
     // Output functions - need to be changed when porting to another MCU
     static void digitalWrite(uint8_t portNumber, uint8_t value,
@@ -111,13 +116,14 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                   RF06_error_E *err);
 
 void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err);
-void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray,
+void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
                     RF06_error_E *err);
 
-void AOA_setThreshold(AOA_plug_S *aoaPlug);
-
-
-
+// TODO: Check if public or private
+float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err);
+float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err);
+uint16_t AOA_getAoaInt(AOA_plug_S *aoaPlug, RF06_error_E *err);
+uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
 
 

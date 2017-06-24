@@ -82,25 +82,119 @@ static inline void setGpioModeInput(uint8_t gpioPin, RF06_error_E *err) {
 /*******************************************************************************
 * @brief
 ********************************************************************************
-* @param    :
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:           Pointer to error return code
 * @return   Nothing
 ********************************************************************************
-* @date
+* @date     2017-06-06
 *******************************************************************************/
-void AOA_setThreshold(AOA_plug_S *aoaPlug) {
+static inline void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    uint8_t noise = 0;
+    uint8_t i;
 
+    aoaPlug->threshold = AOA_NOISE_THRESHOLD;
+
+    AOA_readInputs(aoaPlug, aoaPlug->interf, err);
+    AOA_readInputs(aoaPlug, aoaPlug->interf2, err);
+
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        noise = aoaPlug->interf2[i] - aoaPlug->interf[i];
+        if(abs(noise) > aoaPlug->threshold) {
+            aoaPlug->threshold = abs(noise) + AOA_NOISE_THRESHOLD;
+        }
+    }
 }
 
 /*******************************************************************************
-* @brief
+* @brief    Sets values to be used in get_aoa methods
 ********************************************************************************
-* @param    :
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:           Pointer to error return code
 * @return   Nothing
 ********************************************************************************
-* @date
+* @date     2017-06-05
 *******************************************************************************/
-static inline void AOA_setValues(AOA_plug_S *aoaPlug) {
+static inline void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    uint16_t diff = 0;
+    uint8_t i;
 
+    AOA_readInputs(aoaPlug, aoaPlug->values, err);
+
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        diff = aoaPlug->values[i] - aoaPlug->interf[i];
+        aoaPlug->values[i] = (diff > aoaPlug->threshold) ? (uint16_t)diff : 0;
+    }
+}
+
+/*******************************************************************************
+* @brief    Return MAX value in AOA values
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @return   max
+********************************************************************************
+* @date     2017-06-05
+*******************************************************************************/
+static inline uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug) {
+    uint16_t max = aoaPlug->values[0];
+    uint8_t i;
+
+    for(i = 1; i < AOA_INPUTS_NUM; ++ i) {
+        if(aoaPlug->values[i] > max) max = aoaPlug->values[i];
+    }
+    return max;
+}
+
+/*******************************************************************************
+* @brief    Calculate AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @return   aoa
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+static inline float AOA_calculateAoa(AOA_plug_S *aoaPlug) {
+    uint8_t m   = 0;    //!
+    uint8_t ccw = 0;    //!
+    uint8_t cw  = 0;    //!
+    uint8_t section;    //!
+    uint8_t i;
+
+    float v_m, v_ccw, v_cw, v_cw_ccw, aoa;
+
+    for(i = 1; i < AOA_INPUTS_NUM; i ++) {
+        if(aoaPlug->values[i] > aoaPlug->values[m]) m = i;
+    }
+
+    ccw     = (m + AOA_INPUTS_NUM - 1) % (AOA_INPUTS_NUM);
+    cw      = (m + 1) % AOA_INPUTS_NUM;
+    v_m     = aoaPlug->values[m];
+    v_cw    = aoaPlug->values[cw];
+    v_ccw   = aoaPlug->values[ccw];
+    v_cw_ccw = (v_cw / v_ccw);
+
+    // Interpolate
+    for(i = 1; i < 31; i ++) {
+        if(v_cw_ccw < aoaPlug->CW_CCW[i]) break;
+    }
+
+    // Calculate AOA relative to m, based on chosen section
+    if(i < AOA_I_MARGIN) {
+        section = 1;
+        aoa = (v_m / (v_ccw - aoaPlug->P0I[ccw])) / aoaPlug->P1I;
+    } else if(i > (30 - AOA_III_MARGIN)) {
+        section = 3;
+        aoa = (v_m / (v_cw - aoaPlug->P0III[ccw])) / aoaPlug->P1III;
+    } else {
+        section = 2;
+        aoa = i - 16 + (v_cw_ccw - aoaPlug->CW_CCW[i - 1])
+                / (aoaPlug->CW_CCW[i] - aoaPlug->CW_CCW[ i - 1]);
+    }
+
+    // Get absolute AOA and put it in 0 - 360 range
+    aoa += m * 30.0;
+    aoa = aoa < 0 ? aoa + 360 : aoa;
+
+    return aoa;
 }
 
 
@@ -111,9 +205,9 @@ static inline void AOA_setValues(AOA_plug_S *aoaPlug) {
 /*******************************************************************************
 * @brief    Initialize AOA port1 or port2
 ********************************************************************************
-* @param    *aoaPlug:       AOA data structure
+* @param    *aoaPlug:       Pointer to AOA data structure
 * @param    aoaPortNumber:  AOA Port Number, can be 1 or 2
-* @param    *err:           error return code
+* @param    *err:           Pointer to error return code
 * @return   Nothing
 ********************************************************************************
 * @date     2017-06-01
@@ -204,9 +298,9 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
 /*******************************************************************************
 * @brief    Select channel from multiplexer
 ********************************************************************************
-* @param    *aoaPlug:   AOA data structure
+* @param    *aoaPlug:   Pointer to AOA data structure
 * @param    channel:    AOA channel for multiplexer
-* @param    *err:       error return code
+* @param    *err:       Pointer to error return code
 * @return   Nothing
 ********************************************************************************
 * @date     2017-06-02
@@ -272,14 +366,14 @@ void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err) {
 /*******************************************************************************
 * @brief    Read and save values from channels
 ********************************************************************************
-* @param    *aoaPlug:   AOA data structure
+* @param    *aoaPlug:        Pointer to AOA data structure
 * @param    *outputArray:    array for data
-* @param    *err:       error return code
+* @param    *err:            Pointer to error return code
 * @return   Nothing
 ********************************************************************************
 * @date     2017-06-02
 *******************************************************************************/
-void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray,
+void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
                     RF06_error_E *err) {
     uint8_t i;
     setGpioModeInput(MULTIPLEXER_COMMUNICATION_PIN_PORT1, err);
@@ -298,6 +392,82 @@ void AOA_readInputs(AOA_plug_S *aoaPlug, uint8_t *outputArray,
         // Page 11. Analog pins
     }
 
+}
+
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:            Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    uint16_t tmp = aoaPlug->MAX_VAL_THRESHOLD;
+
+    // Temporary remove threshold
+    aoaPlug->MAX_VAL_THRESHOLD = 0;
+    float aoa = AOA_getAoa(aoaPlug, err);
+
+    aoaPlug->MAX_VAL_THRESHOLD = tmp;
+    return (uint16_t)(aoa * 10000);
+}
+
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:            Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+uint16_t AOA_getAoaInt(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    float aoa = AOA_getAoa(aoaPlug, err);
+
+    if((*err != ERR_OK) || (*err == ERR_AOA_FLOAT_FAIL)) {
+        *err = ERR_AOA_INT_FAIL;
+        return ERR_AOA_INT_FAIL;
+    }
+    return (uint16_t)(aoa * 10000);
+}
+
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:            Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    float aoa = AOA_getAoaDeg(aoaPlug, err);
+    if((*err != ERR_OK) || (*err == ERR_AOA_DEG_FAIL)) {
+        *err = ERR_AOA_FLOAT_FAIL;
+        return -1;
+    }
+    return aoa * PI / 180;
+}
+
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:           Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    AOA_setValues(aoaPlug, err);
+
+    if(AOA_getMaxValue(aoaPlug) < aoaPlug->MAX_VAL_THRESHOLD) {
+        *err = ERR_AOA_DEG_FAIL;
+        return -1;
+    }
+    return AOA_calculateAoa(aoaPlug);
 }
 
 #endif // AOA_DRIVER_C
