@@ -30,7 +30,7 @@ int main(void) {
 
 #if SERIAL_DEBUG
     UARTprintf("Start");
-#endif
+#endif // SERIAL_DEBUG
 
     // Initialize delay
     INIT_delay(GPTIMER_B ,SYS_CTRL_PERIPH_GPT0, GPTIMER0_BASE,
@@ -42,12 +42,34 @@ int main(void) {
     //      --> Removed jumper, used for AOA
     // For reference: swru321b.pdf and swrr143.pdf
 
-   GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
-//
+    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
+
     GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, GPIO_PIN_1);
 
     RF06_error_E err = ERR_OK;
     INIT_aoaPlug(&aoaPlug, AOA_PORT_NUMBER, &err);
+    if(err != ERR_OK) {
+#if SERIAL_DEBUG
+        UARTprintf("ERROR = %s", err);
+#endif // SERIAL_DEBUG
+    }
+
+    AOA_setThreshold(&aoaPlug, &err);
+    if(err != ERR_OK) {
+#if SERIAL_DEBUG
+        UARTprintf("ERROR = %s", err);
+#endif // SERIAL_DEBUG
+    }
+
+    uint16_t angle = AOA_getAoaInt(&aoaPlug, &err);
+    if(err != ERR_OK) {
+#if SERIAL_DEBUG
+        UARTprintf("ERROR = %s", err);
+#endif // SERIAL_DEBUG
+    }
+
+    // Print angle
+    UARTprintf("Angle = %d", angle);
 
     for(;;) {
 

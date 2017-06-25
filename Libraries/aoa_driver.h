@@ -11,6 +11,7 @@
 
 // Drivers
 #include "gpio.h"
+#include "adc.h"
 
 // Local
 #include "errors.h"
@@ -43,6 +44,11 @@
 #define MULTIPLEXER_COMMUNICATION_PIN_PORT2     GPIO_PIN_1
 
 #define MULTIPLEXER_COMMUNICATION_PIN_BASE      GPIO_C_BASE
+
+
+// Analog
+#define ADC_PIN         GPIO_PIN_6
+#define ADC_PIN_BASE    GPIO_A_BASE
 
 // AOA Ports
 #define AOA_PORT1   1u
@@ -98,12 +104,13 @@ typedef struct AOA_plug_STRUCT {
     static void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err);
     static uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug);
     static float AOA_calculateAoa(AOA_plug_S *aoaPlug);
-    void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
     // Output functions - need to be changed when porting to another MCU
     static void digitalWrite(uint8_t portNumber, uint8_t value,
                              RF06_error_E *err);
-    static void setGpioModeInput(uint8_t gpioPin, RF06_error_E *err);
+    static void setGpioModeInput(uint8_t gpioPin, uint32_t gpioPort,
+                                 RF06_error_E *err);
+
     static void INIT_Gpio();
 
 
@@ -118,6 +125,7 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
 void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err);
 void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
                     RF06_error_E *err);
+void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
 // TODO: Check if public or private
 float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err);

@@ -11,5 +11,7 @@
  ******************************************************************************/
 #define USE_ENABLE_TIMER_B
 
+//! Debug
+#define SERIAL_DEBUG    1
 
 #endif /* APP_DEF_APP_H_ */

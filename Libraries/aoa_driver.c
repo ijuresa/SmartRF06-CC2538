@@ -66,43 +66,28 @@ static inline void INIT_Gpio() {
     // PORT2
     GPIOPinTypeGPIOOutput(MULTIPLEXER_COMMUNICATION_PIN_BASE,
                           MULTIPLEXER_COMMUNICATION_PIN_PORT2);
+
+    // Initialize Analog GPIO
+    // AOA -> PIN5 on RF2.5 PIN
+    GPIOPinTypeGPIOOutput(ADC_PIN_BASE, ADC_PIN);
+
+    // Configure ADC
+    SOCADCSingleConfigure(SOCADC_10_BIT, SOCADC_REF_INTERNAL);
 }
 
 /*******************************************************************************
 * @brief    Set GPIO as INPUT
 ********************************************************************************
+* @param    gpioPin:       GPIO Pin to be set (0 -7)
+* @param    gpioPort:      GPIO PORT to be set (A, B, C, D)
+* @param    *err:           Pointer to error return code
 * @return   Nothing
 ********************************************************************************
 * @date     2017-06-02
 *******************************************************************************/
-static inline void setGpioModeInput(uint8_t gpioPin, RF06_error_E *err) {
-    GPIOPinTypeGPIOInput(MULTIPLEXER_COMMUNICATION_PIN_BASE, gpioPin);
-}
-
-/*******************************************************************************
-* @brief
-********************************************************************************
-* @param    *aoaPlug:       Pointer to AOA data structure
-* @param    *err:           Pointer to error return code
-* @return   Nothing
-********************************************************************************
-* @date     2017-06-06
-*******************************************************************************/
-static inline void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err) {
-    uint8_t noise = 0;
-    uint8_t i;
-
-    aoaPlug->threshold = AOA_NOISE_THRESHOLD;
-
-    AOA_readInputs(aoaPlug, aoaPlug->interf, err);
-    AOA_readInputs(aoaPlug, aoaPlug->interf2, err);
-
-    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
-        noise = aoaPlug->interf2[i] - aoaPlug->interf[i];
-        if(abs(noise) > aoaPlug->threshold) {
-            aoaPlug->threshold = abs(noise) + AOA_NOISE_THRESHOLD;
-        }
-    }
+static inline void setGpioModeInput(uint8_t gpioPin, uint32_t gpioPort,
+                                    RF06_error_E *err) {
+    GPIOPinTypeGPIOInput((uint32_t)gpioPort, gpioPin);
 }
 
 /*******************************************************************************
@@ -376,7 +361,8 @@ void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err) {
 void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
                     RF06_error_E *err) {
     uint8_t i;
-    setGpioModeInput(MULTIPLEXER_COMMUNICATION_PIN_PORT1, err);
+    // Set ADC Pin as INPUT
+    setGpioModeInput(ADC_PIN, ADC_PIN_BASE, err);
     for(i = 0; i < AOA_INPUTS_NUM; i ++) {
         AOA_select(aoaPlug, i, err);
         //TODO: return error code
@@ -388,10 +374,16 @@ void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
 
         delay_SysCtrlDelay(AOA_SWITCH_DELAY);
 
-        //outputArray[i] =
-        // Page 11. Analog pins
-    }
+        // Page 11. Analog pins driver doc
+        // Trigger single conversion on PA6
+        SOCADCSingleStart(SOCADC_AIN6);
 
+        // Wait until conversion is completed
+        while(!SOCADCEndOfCOnversionGet()) { }
+
+        // Get data and shift
+        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
+    }
 }
 
 /*******************************************************************************
@@ -470,6 +462,31 @@ float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     return AOA_calculateAoa(aoaPlug);
 }
 
+/*******************************************************************************
+* @brief
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:           Pointer to error return code
+* @return   Nothing
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    uint8_t noise = 0;
+    uint8_t i;
+
+    aoaPlug->threshold = AOA_NOISE_THRESHOLD;
+
+    AOA_readInputs(aoaPlug, aoaPlug->interf, err);
+    AOA_readInputs(aoaPlug, aoaPlug->interf2, err);
+
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        noise = aoaPlug->interf2[i] - aoaPlug->interf[i];
+        if(abs(noise) > aoaPlug->threshold) {
+            aoaPlug->threshold = abs(noise) + AOA_NOISE_THRESHOLD;
+        }
+    }
+}
 #endif // AOA_DRIVER_C
 
 /*******************************************************************************

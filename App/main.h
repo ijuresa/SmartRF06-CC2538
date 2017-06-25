@@ -20,6 +20,7 @@
 //! Local includes
 #include "aoa_driver.h"
 #include "delay.h"
+#include "def_app.h"
 
 /*******************************************************************************
  *                       CONSTANTS
@@ -34,9 +35,6 @@
 #define TIMER_0B_CONFIGURATION  GPTIMER_CFG_SPLIT_PAIR      \
                                 | GPTIMER_CFG_A_ONE_SHOT    \
                                 | GPTIMER_CFG_B_PERIODIC
-
-//! Debug
-#define SERIAL_DEBUG    1
 
 //! AOA
 #define AOA_PORT_NUMBER 0
