@@ -29,7 +29,7 @@ int main(void) {
     INIT_uart();
 
 #if SERIAL_DEBUG
-    UARTprintf("Start");
+    UARTprintf("Start/n");
 #endif // SERIAL_DEBUG
 
     // Initialize delay
@@ -50,14 +50,14 @@ int main(void) {
     INIT_aoaPlug(&aoaPlug, AOA_PORT_NUMBER, &err);
     if(err != ERR_OK) {
 #if SERIAL_DEBUG
-        UARTprintf("ERROR = %s", err);
+        UARTprintf("ERROR = %d", err);
 #endif // SERIAL_DEBUG
     }
 
     AOA_setThreshold(&aoaPlug, &err);
     if(err != ERR_OK) {
 #if SERIAL_DEBUG
-        UARTprintf("ERROR = %s", err);
+        UARTprintf("ERROR = %d", err);
 #endif // SERIAL_DEBUG
     }
 

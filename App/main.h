@@ -37,7 +37,7 @@
                                 | GPTIMER_CFG_B_PERIODIC
 
 //! AOA
-#define AOA_PORT_NUMBER 0
+#define AOA_PORT_NUMBER 1
 
 /*******************************************************************************
  *                       PUBLIC FUNCTION PROTOTYPES

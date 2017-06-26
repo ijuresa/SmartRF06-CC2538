@@ -25,13 +25,13 @@ static inline void digitalWrite(uint8_t portNumber, uint8_t value,
                                 RF06_error_E *err) {
 
     // Check if value is anything else than 0 or 1
-    if((value != 0) || (value != 1)) {
+    if(value > SET_HIGH) {
         *err = ERR_AOA_WRONG_GPIO_WRITE;
         return;
     }
 
     // Check if we want to write to wrong PORT
-    else if((portNumber != AOA_PORT1) || (portNumber != AOA_PORT1)) {
+    else if((portNumber == 0) || (portNumber > AOA_PORT1)) {
         *err = ERR_AOA_WRONG_PORT;
         return;
     }
@@ -200,8 +200,6 @@ static inline float AOA_calculateAoa(AOA_plug_S *aoaPlug) {
 void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                   RF06_error_E *err) {
     int8_t i;
-
-    *err = ERR_OK;
     INIT_Gpio();
 
     // TODO: Write EEPROM read function
@@ -221,7 +219,7 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
      *
      */
 
-    if((aoaPortNumber != 1) || (aoaPortNumber != 2)) {
+    if((aoaPortNumber == 0) || (aoaPortNumber > AOA_PORT2)) {
         *err = ERR_AOA_WRONG_PORT;
         return;
     }
@@ -292,7 +290,6 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
 *******************************************************************************/
 void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err) {
     uint8_t i;
-    *err = ERR_OK;
 
     // Check channel
     if(channel > 11) {
@@ -301,8 +298,8 @@ void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err) {
     }
 
     // Check if AOA is initialized
-    else if((aoaPlug->portNumber != AOA_PORT1)
-                || (aoaPlug->portNumber != AOA_PORT2)) {
+    else if((aoaPlug->portNumber == 0)
+                || (aoaPlug->portNumber > AOA_PORT2)) {
         *err = ERR_AOA_NOT_INITIALIZED;
         return;
     }
@@ -478,7 +475,9 @@ void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     aoaPlug->threshold = AOA_NOISE_THRESHOLD;
 
     AOA_readInputs(aoaPlug, aoaPlug->interf, err);
+    if(*err != ERR_OK) return;
     AOA_readInputs(aoaPlug, aoaPlug->interf2, err);
+    if(*err != ERR_OK) return;
 
     for(i = 0; i < AOA_INPUTS_NUM; i ++) {
         noise = aoaPlug->interf2[i] - aoaPlug->interf[i];
