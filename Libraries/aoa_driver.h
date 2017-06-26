@@ -40,10 +40,10 @@
 #define MAXVALTHR_EEPROM_ADDR       (uint8_t*)(CALIBRATION_EEPROM_ADDR + 31)
 
 // Pin used to communicate with multiplexer
-#define MULTIPLEXER_COMMUNICATION_PIN_PORT1     GPIO_PIN_0
-#define MULTIPLEXER_COMMUNICATION_PIN_PORT2     GPIO_PIN_1
+#define AOA_PORT1_PDIO          GPIO_PIN_0
+#define AOA_PORT2_PDIO          GPIO_PIN_1
 
-#define MULTIPLEXER_COMMUNICATION_PIN_BASE      GPIO_C_BASE
+#define AOA_PORTS_GPIO_BASE     GPIO_C_BASE
 
 
 // Analog
@@ -68,7 +68,6 @@ typedef struct AOA_plug_STRUCT {
     uint8_t led;
     uint8_t portNumber;
 
-    //!< Calibration params - float not supported - check for overflow
     float P1I;
     float P1III;
     float PII[5];           //< For convenient calculation of cw_ccw
@@ -104,6 +103,12 @@ typedef struct AOA_plug_STRUCT {
     static void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err);
     static uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug);
     static float AOA_calculateAoa(AOA_plug_S *aoaPlug);
+    static float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err);
+    static float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err);
+    static void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
+                           RF06_error_E *err);
+    static void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
+                        RF06_error_E *err);
 
     // Output functions - need to be changed when porting to another MCU
     static void digitalWrite(uint8_t portNumber, uint8_t value,
@@ -113,7 +118,6 @@ typedef struct AOA_plug_STRUCT {
 
     static void INIT_Gpio();
 
-
 #endif
 
 /*******************************************************************************
@@ -122,14 +126,13 @@ typedef struct AOA_plug_STRUCT {
 void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                   RF06_error_E *err);
 
-void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err);
-void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
-                    RF06_error_E *err);
+
+
 void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
-// TODO: Check if public or private
-float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err);
-float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err);
+
+
+
 uint16_t AOA_getAoaInt(AOA_plug_S *aoaPlug, RF06_error_E *err);
 uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err);
 

@@ -1,5 +1,3 @@
-
-
 #ifndef AOA_DRIVER_C
 #define AOA_DRIVER_C
 
@@ -38,16 +36,12 @@ static inline void digitalWrite(uint8_t portNumber, uint8_t value,
 
     // Write to PORT1
     else if (portNumber == AOA_PORT1) {
-        GPIOPinWrite(MULTIPLEXER_COMMUNICATION_PIN_BASE,
-                         MULTIPLEXER_COMMUNICATION_PIN_PORT1,
-                         value);
+        GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO, value);
     }
 
     // Write to PORT2
     else {
-        GPIOPinWrite(MULTIPLEXER_COMMUNICATION_PIN_BASE,
-                 MULTIPLEXER_COMMUNICATION_PIN_PORT2,
-                 value);
+        GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO, value);
     }
 }
 
@@ -60,12 +54,10 @@ static inline void digitalWrite(uint8_t portNumber, uint8_t value,
 *******************************************************************************/
 static inline void INIT_Gpio() {
     // PORT1
-    GPIOPinTypeGPIOOutput(MULTIPLEXER_COMMUNICATION_PIN_BASE,
-                          MULTIPLEXER_COMMUNICATION_PIN_PORT1);
+    GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO);
 
     // PORT2
-    GPIOPinTypeGPIOOutput(MULTIPLEXER_COMMUNICATION_PIN_BASE,
-                          MULTIPLEXER_COMMUNICATION_PIN_PORT2);
+    GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO);
 
     // Initialize Analog GPIO
     // AOA -> PIN5 on RF2.5 PIN
@@ -182,16 +174,158 @@ static inline float AOA_calculateAoa(AOA_plug_S *aoaPlug) {
     return aoa;
 }
 
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:            Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+static inline float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    float aoa = AOA_getAoaDeg(aoaPlug, err);
+    if((*err != ERR_OK) || (*err == ERR_AOA_DEG_FAIL)) {
+        *err = ERR_AOA_FLOAT_FAIL;
+        return -1;
+    }
+    return aoa * PI / 180;
+}
+
+/*******************************************************************************
+* @brief    Get AOA
+********************************************************************************
+* @param    *aoaPlug:       Pointer to AOA data structure
+* @param    *err:           Pointer to error return code
+* @return
+********************************************************************************
+* @date     2017-06-06
+*******************************************************************************/
+static inline float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err) {
+    AOA_setValues(aoaPlug, err);
+
+    if(AOA_getMaxValue(aoaPlug) < aoaPlug->MAX_VAL_THRESHOLD) {
+        *err = ERR_AOA_DEG_FAIL;
+        return -1;
+    }
+    return AOA_calculateAoa(aoaPlug);
+}
+
+/*******************************************************************************
+* @brief    Select channel from multiplexer
+********************************************************************************
+* @param    *aoaPlug:   Pointer to AOA data structure
+* @param    channel:    AOA channel for multiplexer
+* @param    *err:       Pointer to error return code
+* @return   Nothing
+********************************************************************************
+* @date     2017-06-02
+*******************************************************************************/
+static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
+                              RF06_error_E *err) {
+    uint8_t i;
+
+    // Check channel
+    if(channel > 11) {
+        *err = ERR_AOA_WRONG_CHANNEL;
+        return;
+    }
+
+    // Check if AOA is initialized
+    else if((aoaPlug->portNumber == 0)
+                || (aoaPlug->portNumber > AOA_PORT2)) {
+        *err = ERR_AOA_NOT_INITIALIZED;
+        return;
+    }
+
+    // Set both PORT Pins to 0
+    digitalWrite(AOA_PORT1, SET_LOW, err);
+    if(*err != ERR_OK) return;
+
+    digitalWrite(AOA_PORT1, SET_LOW, err);
+    if(*err != ERR_OK) return;
+
+    // 50 microseconds delay
+    delay_SysCtrlDelay(533);
+
+    // Select channel
+    // 0x10 - ?
+    uint8_t data = 0x10 | (channel & 0x0F);
+
+    // Disable interrupts
+    IntMasterDisable();
+
+    for(i = 0; i < 5; ++ i) {
+        // Return value will be used as delay
+        // 96 - 9us and 32 - 3us
+        uint8_t us = bitRead(data, 4 - i) ? 96 : 32;
+
+        // Check on which PORT AOA structure is set
+        if(aoaPlug->portNumber == AOA_PORT1) {
+            digitalWrite(AOA_PORT1, SET_HIGH, err);
+        } else digitalWrite(AOA_PORT2, SET_HIGH, err);
+
+        delay_SysCtrlDelay(us);
+
+        if(aoaPlug->portNumber == AOA_PORT1) {
+            digitalWrite(AOA_PORT1, SET_LOW, err);
+        } else digitalWrite(AOA_PORT2, SET_LOW, err);
+
+        // 4 microseconds delay
+        delay_SysCtrlDelay(43);
+    }
+
+    // Enable interrupts
+    IntMasterEnable();
+}
+
+/*******************************************************************************
+* @brief    Read and save values from channels
+********************************************************************************
+* @param    *aoaPlug:        Pointer to AOA data structure
+* @param    *outputArray:    array for data
+* @param    *err:            Pointer to error return code
+* @return   Nothing
+********************************************************************************
+* @date     2017-06-02
+*******************************************************************************/
+static void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
+                    RF06_error_E *err) {
+    uint8_t i;
+    // Set ADC Pin as INPUT
+    setGpioModeInput(ADC_PIN, ADC_PIN_BASE, err);
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        AOA_select(aoaPlug, i, err);
+        //TODO: return error code
+
+        // 1ms
+        delay_SysCtrlDelay(10667);
+        AOA_select(aoaPlug, i, err);
+        // TODO: return error code
+
+        delay_SysCtrlDelay(AOA_SWITCH_DELAY);
+
+        // Page 11. Analog pins driver doc
+        // Trigger single conversion on PA6
+        SOCADCSingleStart(SOCADC_AIN6);
+
+        // Wait until conversion is completed
+        while(!SOCADCEndOfCOnversionGet()) { }
+
+        // Get data and shift
+        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
+    }
+}
 
 /*******************************************************************************
 * PUBLIC FUNCTIONS
 *******************************************************************************/
 
 /*******************************************************************************
-* @brief    Initialize AOA port1 or port2
+* @brief    Initialize AOA
 ********************************************************************************
 * @param    *aoaPlug:       Pointer to AOA data structure
-* @param    aoaPortNumber:  AOA Port Number, can be 1 or 2
+* @param    aoaPortNumber:  AOA Port Number [1 or 2]
 * @param    *err:           Pointer to error return code
 * @return   Nothing
 ********************************************************************************
@@ -200,6 +334,8 @@ static inline float AOA_calculateAoa(AOA_plug_S *aoaPlug) {
 void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                   RF06_error_E *err) {
     int8_t i;
+
+    // Initialize GPIO
     INIT_Gpio();
 
     // TODO: Write EEPROM read function
@@ -219,6 +355,7 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
      *
      */
 
+    // Check PortNumber
     if((aoaPortNumber == 0) || (aoaPortNumber > AOA_PORT2)) {
         *err = ERR_AOA_WRONG_PORT;
         return;
@@ -279,116 +416,11 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
 }
 
 /*******************************************************************************
-* @brief    Select channel from multiplexer
-********************************************************************************
-* @param    *aoaPlug:   Pointer to AOA data structure
-* @param    channel:    AOA channel for multiplexer
-* @param    *err:       Pointer to error return code
-* @return   Nothing
-********************************************************************************
-* @date     2017-06-02
-*******************************************************************************/
-void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel, RF06_error_E *err) {
-    uint8_t i;
-
-    // Check channel
-    if(channel > 11) {
-        *err = ERR_AOA_WRONG_CHANNEL;
-        return;
-    }
-
-    // Check if AOA is initialized
-    else if((aoaPlug->portNumber == 0)
-                || (aoaPlug->portNumber > AOA_PORT2)) {
-        *err = ERR_AOA_NOT_INITIALIZED;
-        return;
-    }
-
-    // Set both PORT Pins to 0
-    digitalWrite(AOA_PORT1, SET_LOW, err);
-    if(*err != ERR_OK) return;
-
-    digitalWrite(AOA_PORT1, SET_LOW, err);
-    if(*err != ERR_OK) return;
-
-    // 50 microseconds delay
-    delay_SysCtrlDelay(533);
-
-    // Select channel
-    // 0x10 - ?
-    uint8_t data = 0x10 | (channel & 0x0F);
-
-    // Disable interrupts
-    IntMasterDisable();
-
-    for(i = 0; i < 5; ++ i) {
-        // Return value will be used as delay
-        // 96 - 9us and 32 - 3us
-        uint8_t us = bitRead(data, 4 - i) ? 96 : 32;
-
-        // Check on which PORT AOA structure is set
-        if(aoaPlug->portNumber == 1) {
-            digitalWrite(AOA_PORT1, SET_HIGH, err);
-        } else digitalWrite(AOA_PORT2, SET_HIGH, err);
-
-        delay_SysCtrlDelay(us);
-
-        if(aoaPlug->portNumber == 1) {
-            digitalWrite(AOA_PORT1, SET_LOW, err);
-        } else digitalWrite(AOA_PORT2, SET_LOW, err);
-
-        // 4 microseconds delay
-        delay_SysCtrlDelay(43);
-    }
-
-    // Enable interrupts
-    IntMasterEnable();
-}
-
-/*******************************************************************************
-* @brief    Read and save values from channels
-********************************************************************************
-* @param    *aoaPlug:        Pointer to AOA data structure
-* @param    *outputArray:    array for data
-* @param    *err:            Pointer to error return code
-* @return   Nothing
-********************************************************************************
-* @date     2017-06-02
-*******************************************************************************/
-void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
-                    RF06_error_E *err) {
-    uint8_t i;
-    // Set ADC Pin as INPUT
-    setGpioModeInput(ADC_PIN, ADC_PIN_BASE, err);
-    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
-        AOA_select(aoaPlug, i, err);
-        //TODO: return error code
-
-        // 1ms
-        delay_SysCtrlDelay(10667);
-        AOA_select(aoaPlug, i, err);
-        // TODO: return error code
-
-        delay_SysCtrlDelay(AOA_SWITCH_DELAY);
-
-        // Page 11. Analog pins driver doc
-        // Trigger single conversion on PA6
-        SOCADCSingleStart(SOCADC_AIN6);
-
-        // Wait until conversion is completed
-        while(!SOCADCEndOfCOnversionGet()) { }
-
-        // Get data and shift
-        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
-    }
-}
-
-/*******************************************************************************
 * @brief    Get AOA
 ********************************************************************************
 * @param    *aoaPlug:       Pointer to AOA data structure
-* @param    *err:            Pointer to error return code
-* @return
+* @param    *err:           Pointer to error return code
+* @return   aoa
 ********************************************************************************
 * @date     2017-06-06
 *******************************************************************************/
@@ -407,8 +439,8 @@ uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err) {
 * @brief    Get AOA
 ********************************************************************************
 * @param    *aoaPlug:       Pointer to AOA data structure
-* @param    *err:            Pointer to error return code
-* @return
+* @param    *err:           Pointer to error return code
+* @return   aoa
 ********************************************************************************
 * @date     2017-06-06
 *******************************************************************************/
@@ -422,42 +454,6 @@ uint16_t AOA_getAoaInt(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     return (uint16_t)(aoa * 10000);
 }
 
-/*******************************************************************************
-* @brief    Get AOA
-********************************************************************************
-* @param    *aoaPlug:       Pointer to AOA data structure
-* @param    *err:            Pointer to error return code
-* @return
-********************************************************************************
-* @date     2017-06-06
-*******************************************************************************/
-float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err) {
-    float aoa = AOA_getAoaDeg(aoaPlug, err);
-    if((*err != ERR_OK) || (*err == ERR_AOA_DEG_FAIL)) {
-        *err = ERR_AOA_FLOAT_FAIL;
-        return -1;
-    }
-    return aoa * PI / 180;
-}
-
-/*******************************************************************************
-* @brief    Get AOA
-********************************************************************************
-* @param    *aoaPlug:       Pointer to AOA data structure
-* @param    *err:           Pointer to error return code
-* @return
-********************************************************************************
-* @date     2017-06-06
-*******************************************************************************/
-float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err) {
-    AOA_setValues(aoaPlug, err);
-
-    if(AOA_getMaxValue(aoaPlug) < aoaPlug->MAX_VAL_THRESHOLD) {
-        *err = ERR_AOA_DEG_FAIL;
-        return -1;
-    }
-    return AOA_calculateAoa(aoaPlug);
-}
 
 /*******************************************************************************
 * @brief
