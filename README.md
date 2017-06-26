@@ -18,4 +18,4 @@ Build and Install
 
 Clone and import project in CCS.
 
-![Schematics](documentation/BMO.png)
+![Schematics](Documentation/BMO.png)
