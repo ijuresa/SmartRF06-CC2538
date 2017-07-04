@@ -1,7 +1,9 @@
 #ifndef AOA_DRIVER_C
 #define AOA_DRIVER_C
 
-/* Includes */
+/*******************************************************************************
+ *                       INCLUDE FILES
+ ******************************************************************************/
 #include "aoa_driver.h"
 
 /*******************************************************************************
@@ -39,10 +41,10 @@ static inline void digitalWrite(uint8_t portNumber, uint8_t value,
         GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO, value);
     }
 
-    // Write to PORT2
-    else {
-        GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO, value);
-    }
+//    // Write to PORT2
+//    else {
+//        GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO, value);
+//    }
 }
 
 /*******************************************************************************
@@ -57,7 +59,7 @@ static inline void INIT_Gpio() {
     GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO);
 
     // PORT2
-    GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO);
+//    GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO);
 
     // Initialize Analog GPIO
     // AOA -> PIN5 on RF2.5 PIN

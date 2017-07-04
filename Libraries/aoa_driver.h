@@ -16,6 +16,7 @@
 // Local
 #include "errors.h"
 #include "delay.h"
+#include "def_app.h"
 
 
 /*******************************************************************************
@@ -41,8 +42,8 @@
 
 // Pin used to communicate with multiplexer
 #define AOA_PORT1_PDIO          GPIO_PIN_0
-#define AOA_PORT2_PDIO          GPIO_PIN_1
 
+// Port
 #define AOA_PORTS_GPIO_BASE     GPIO_C_BASE
 
 
@@ -53,10 +54,6 @@
 // AOA Ports
 #define AOA_PORT1   1u
 #define AOA_PORT2   2u
-
-// GPIO
-#define SET_LOW     0u
-#define SET_HIGH    1u
 
 #define PI 3.141592653589793238462643383
 

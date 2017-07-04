@@ -36,15 +36,17 @@ int main(void) {
     INIT_delay(GPTIMER_B ,SYS_CTRL_PERIPH_GPT0, GPTIMER0_BASE,
                TIMER_0B_CONFIGURATION);
 
+    LED_init();
+    LED_turnOn();
+
+
     // GPIO_PIN_1 is connected to LED1 (orange) -> Used only for testing
     // GPIO_PIN_0 is connected to LED0 (red)
     //      |
     //      --> Removed jumper, used for AOA
     // For reference: swru321b.pdf and swrr143.pdf
 
-    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, 0);
-
-    GPIOPinWrite(GPIO_C_BASE, GPIO_PIN_1, GPIO_PIN_1);
+    /*
 
     RF06_error_E err = ERR_OK;
     INIT_aoaPlug(&aoaPlug, AOA_PORT_NUMBER, &err);
@@ -53,6 +55,9 @@ int main(void) {
         UARTprintf("ERROR = %d", err);
 #endif // SERIAL_DEBUG
     }
+
+    // select - read
+
 
     AOA_setThreshold(&aoaPlug, &err);
     if(err != ERR_OK) {
@@ -70,10 +75,11 @@ int main(void) {
 
     // Print angle
     UARTprintf("Angle = %d", angle);
-
+*/
     for(;;) {
 
     }
+
 }
 
 /*******************************************************************************
