@@ -90,7 +90,27 @@ typedef struct AOA_plug_STRUCT {
 /*******************************************************************************
  *                       MACROS
  ******************************************************************************/
-#define bitRead(value, bit) (((value) >> (bit)) & 0x01u)
+#define bitRead_M(value, bit) (((value) >> (bit)) & 0x01u)
+
+// AOA macros
+#define AOA_getLed_M                (aoaPlug->led)
+#define AOA_getPortNumber_M         (aoaPlug->portNumber)
+
+#define AOA_getP1I_M                (aoaPlug->P1I)
+#define AOA_getP1III_M              (aoaPlug->P1III)
+#define AOA_getPII_M(i)             (aoaPlug->PII[i])
+#define AOA_getCW_CCW_M(i)          (aoaPlug->CW_CCW[i])
+
+#define AOA_getP0I_M(i)             (aoaPlug->P0I[i])
+#define AOA_getP0III_M(i)           (aoaPlug->P0III[i])
+
+#define AOA_getMaxValueThreshold_M  (aoaPlug->MAX_VAL_THRESHOLD)
+#define AOA_getPDReading_M(i)       (aoaPlug->values[i])
+
+#define AOA_getInterference1_M(i)   (aoaPlug->interf[i])
+#define AOA_getInterference2_M(i)   (aoaPlug->interf2[i])
+
+#define AOA_getThreshold_M          (aoaPlug->threshold)
 
 /*******************************************************************************
  *                       GLOBAL AND STATIC VARIABLES
@@ -104,8 +124,7 @@ typedef struct AOA_plug_STRUCT {
     static float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err);
     static void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
                            RF06_error_E *err);
-    static void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
-                        RF06_error_E *err);
+
 
     // Output functions - need to be changed when porting to another MCU
     static void digitalWrite(uint8_t portNumber, uint8_t value,
@@ -124,18 +143,14 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                   RF06_error_E *err);
 
 
-
+void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
+                    RF06_error_E *err);
 void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err);
-
-
 
 
 uint16_t AOA_getAoaInt(AOA_plug_S *aoaPlug, RF06_error_E *err);
 uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err);
 
-
-
-// TODO: The rest
 
 /*
  * Sensor number 6. TODO: Find out corresponding values

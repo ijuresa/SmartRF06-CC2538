@@ -97,11 +97,11 @@ static inline void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     uint16_t diff = 0;
     uint8_t i;
 
-    AOA_readInputs(aoaPlug, aoaPlug->values, err);
+    AOA_readInputs(aoaPlug, &AOA_getPDReading_M(0), err);
 
     for(i = 0; i < AOA_INPUTS_NUM; i ++) {
-        diff = aoaPlug->values[i] - aoaPlug->interf[i];
-        aoaPlug->values[i] = (diff > aoaPlug->threshold) ? (uint16_t)diff : 0;
+        diff = AOA_getPDReading_M(i) - AOA_getInterference1_M(i);
+        AOA_getPDReading_M(i) = (diff > AOA_getThreshold_M) ? (uint16_t)diff : 0;
     }
 }
 
@@ -114,11 +114,11 @@ static inline void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err) {
 * @date     2017-06-05
 *******************************************************************************/
 static inline uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug) {
-    uint16_t max = aoaPlug->values[0];
+    uint16_t max = AOA_getPDReading_M(0);
     uint8_t i;
 
     for(i = 1; i < AOA_INPUTS_NUM; ++ i) {
-        if(aoaPlug->values[i] > max) max = aoaPlug->values[i];
+        if(AOA_getPDReading_M(i) > max) max = AOA_getPDReading_M(i);
     }
     return max;
 }
@@ -141,32 +141,32 @@ static inline float AOA_calculateAoa(AOA_plug_S *aoaPlug) {
     float v_m, v_ccw, v_cw, v_cw_ccw, aoa;
 
     for(i = 1; i < AOA_INPUTS_NUM; i ++) {
-        if(aoaPlug->values[i] > aoaPlug->values[m]) m = i;
+        if(AOA_getPDReading_M(i) > AOA_getPDReading_M(m)) m = i;
     }
 
     ccw     = (m + AOA_INPUTS_NUM - 1) % (AOA_INPUTS_NUM);
     cw      = (m + 1) % AOA_INPUTS_NUM;
-    v_m     = aoaPlug->values[m];
-    v_cw    = aoaPlug->values[cw];
-    v_ccw   = aoaPlug->values[ccw];
+    v_m     = AOA_getPDReading_M(m);
+    v_cw    = AOA_getPDReading_M(cw);
+    v_ccw   = AOA_getPDReading_M(ccw);
     v_cw_ccw = (v_cw / v_ccw);
 
     // Interpolate
     for(i = 1; i < 31; i ++) {
-        if(v_cw_ccw < aoaPlug->CW_CCW[i]) break;
+        if(v_cw_ccw < AOA_getCW_CCW_M(i)) break;
     }
 
     // Calculate AOA relative to m, based on chosen section
     if(i < AOA_I_MARGIN) {
         section = 1;
-        aoa = (v_m / (v_ccw - aoaPlug->P0I[ccw])) / aoaPlug->P1I;
+        aoa = (v_m / (v_ccw - AOA_getP0I_M(ccw))) / AOA_getP1I_M;
     } else if(i > (30 - AOA_III_MARGIN)) {
         section = 3;
-        aoa = (v_m / (v_cw - aoaPlug->P0III[ccw])) / aoaPlug->P1III;
+        aoa = (v_m / (v_cw - AOA_getP0III_M(ccw))) / AOA_getP1III_M;
     } else {
         section = 2;
-        aoa = i - 16 + (v_cw_ccw - aoaPlug->CW_CCW[i - 1])
-                / (aoaPlug->CW_CCW[i] - aoaPlug->CW_CCW[ i - 1]);
+        aoa = i - 16 + (v_cw_ccw - AOA_getCW_CCW_M(i - 1))
+                / (AOA_getCW_CCW_M(i) - AOA_getCW_CCW_M(i - 1));
     }
 
     // Get absolute AOA and put it in 0 - 360 range
@@ -206,7 +206,7 @@ static inline float AOA_getAoa(AOA_plug_S *aoaPlug, RF06_error_E *err) {
 static inline float AOA_getAoaDeg(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     AOA_setValues(aoaPlug, err);
 
-    if(AOA_getMaxValue(aoaPlug) < aoaPlug->MAX_VAL_THRESHOLD) {
+    if(AOA_getMaxValue(aoaPlug) < AOA_getMaxValueThreshold_M) {
         *err = ERR_AOA_DEG_FAIL;
         return -1;
     }
@@ -234,8 +234,8 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
     }
 
     // Check if AOA is initialized
-    else if((aoaPlug->portNumber == 0)
-                || (aoaPlug->portNumber > AOA_PORT2)) {
+    else if((AOA_getPortNumber_M == 0)
+                || (AOA_getPortNumber_M > AOA_PORT2)) {
         *err = ERR_AOA_NOT_INITIALIZED;
         return;
     }
@@ -260,16 +260,16 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
     for(i = 0; i < 5; ++ i) {
         // Return value will be used as delay
         // 96 - 9us and 32 - 3us
-        uint8_t us = bitRead(data, 4 - i) ? 96 : 32;
+        uint8_t us = bitRead_M(data, 4 - i) ? 96 : 32;
 
         // Check on which PORT AOA structure is set
-        if(aoaPlug->portNumber == AOA_PORT1) {
+        if(AOA_getPortNumber_M == AOA_PORT1) {
             digitalWrite(AOA_PORT1, SET_HIGH, err);
         } else digitalWrite(AOA_PORT2, SET_HIGH, err);
 
         delay_SysCtrlDelay(us);
 
-        if(aoaPlug->portNumber == AOA_PORT1) {
+        if(AOA_getPortNumber_M == AOA_PORT1) {
             digitalWrite(AOA_PORT1, SET_LOW, err);
         } else digitalWrite(AOA_PORT2, SET_LOW, err);
 
@@ -279,44 +279,6 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
 
     // Enable interrupts
     IntMasterEnable();
-}
-
-/*******************************************************************************
-* @brief    Read and save values from channels
-********************************************************************************
-* @param    *aoaPlug:        Pointer to AOA data structure
-* @param    *outputArray:    array for data
-* @param    *err:            Pointer to error return code
-* @return   Nothing
-********************************************************************************
-* @date     2017-06-02
-*******************************************************************************/
-static void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
-                    RF06_error_E *err) {
-    uint8_t i;
-    // Set ADC Pin as INPUT
-    setGpioModeInput(ADC_PIN, ADC_PIN_BASE, err);
-    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
-        AOA_select(aoaPlug, i, err);
-        //TODO: return error code
-
-        // 1ms
-        delay_SysCtrlDelay(10667);
-        AOA_select(aoaPlug, i, err);
-        // TODO: return error code
-
-        delay_SysCtrlDelay(AOA_SWITCH_DELAY);
-
-        // Page 11. Analog pins driver doc
-        // Trigger single conversion on PA6
-        SOCADCSingleStart(SOCADC_AIN6);
-
-        // Wait until conversion is completed
-        while(!SOCADCEndOfCOnversionGet()) { }
-
-        // Get data and shift
-        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
-    }
 }
 
 /*******************************************************************************
@@ -363,23 +325,23 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
         return;
     }
 
-    aoaPlug->led = (aoaPortNumber == 1) ? 4 : 3;
-    aoaPlug->threshold = 40;
-    aoaPlug->portNumber = aoaPortNumber;
+    AOA_getLed_M = (aoaPortNumber == 1) ? 4 : 3;
+    AOA_getThreshold_M = 40;
+    AOA_getPortNumber_M = aoaPortNumber;
 
     // led.mode(OUTPUT) -> TODO: write wrapper for multiplexer
 
     // Calibration Data
-    aoaPlug->P1I    = 0.0714173;
+    AOA_getP1I_M    = 0.0714173;
     float PII_temp[5] = { -0.00004773,
                           -0.00045021,
                            0.01777579,
                            0.29978508,
                            1.52901584
                          };
-    memcpy(aoaPlug->PII, PII_temp, sizeof(aoaPlug->PII));
+    memcpy(&AOA_getPII_M(0), PII_temp, sizeof(PII_temp));
 
-    aoaPlug->P1III  = -0.046489;
+    AOA_getP1III_M  = -0.046489;
 
     float P0I_temp[AOA_INPUTS_NUM] = { 2.1091110368414916,
                                        2.2355774983709034,
@@ -393,7 +355,7 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                                        2.2724596495853122,
                                        1.8477844290539249
                                     };
-    memcpy(aoaPlug->P0I, P0I_temp, sizeof(aoaPlug->P0I));
+    memcpy(&AOA_getP0I_M(0), P0I_temp, sizeof(P0I_temp));
 
     float P0III_temp[AOA_INPUTS_NUM] = { 1.4291038129149067,
                                          1.6394898887997251,
@@ -407,13 +369,51 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
                                          1.4769705670599229,
                                          1.5176944908435044
                                     };
-    memcpy(aoaPlug->P0III, P0III_temp, sizeof(aoaPlug->P0III));
+    memcpy(&AOA_getP0III_M(0), P0III_temp, sizeof(P0III_temp));
 
     for(i = -15; i < 16; i ++) {
-        aoaPlug->CW_CCW[i + 15] = aoaPlug->PII[0] * pow(i, 4)
-                                + aoaPlug->PII[1] * pow(i, 3)
-                                + aoaPlug->PII[2] * pow(i, 2)
-                                + aoaPlug->PII[3] * i + aoaPlug->PII[4];
+        AOA_getCW_CCW_M(i + 15) = AOA_getPII_M(0) * pow(i, 4)
+                                + AOA_getPII_M(1) * pow(i, 3)
+                                + AOA_getPII_M(2) * pow(i, 2)
+                                + AOA_getPII_M(3) * i + AOA_getPII_M(4);
+    }
+}
+
+/*******************************************************************************
+* @brief    Read and save values from channels
+********************************************************************************
+* @param    *aoaPlug:        Pointer to AOA data structure
+* @param    *outputArray:    array for data
+* @param    *err:            Pointer to error return code
+* @return   Nothing
+********************************************************************************
+* @date     2017-06-02
+*******************************************************************************/
+void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
+                    RF06_error_E *err) {
+    uint8_t i;
+    // Set ADC Pin as INPUT
+    setGpioModeInput(ADC_PIN, ADC_PIN_BASE, err);
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        AOA_select(aoaPlug, i, err);
+        //TODO: return error code
+
+        // 1ms
+        delay_SysCtrlDelay(10667);
+        AOA_select(aoaPlug, i, err);
+        // TODO: return error code
+
+        delay_SysCtrlDelay(AOA_SWITCH_DELAY);
+
+        // Page 11. Analog pins driver doc
+        // Trigger single conversion on PA6
+        SOCADCSingleStart(SOCADC_AIN6);
+
+        // Wait until conversion is completed
+        while(!SOCADCEndOfCOnversionGet()) { }
+
+        // Get data and shift
+        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
     }
 }
 
@@ -427,13 +427,13 @@ void INIT_aoaPlug(AOA_plug_S *aoaPlug, uint8_t aoaPortNumber,
 * @date     2017-06-06
 *******************************************************************************/
 uint16_t AOA_getAoaIntForce(AOA_plug_S *aoaPlug, RF06_error_E *err) {
-    uint16_t tmp = aoaPlug->MAX_VAL_THRESHOLD;
+    uint16_t tmp = AOA_getMaxValueThreshold_M;
 
     // Temporary remove threshold
-    aoaPlug->MAX_VAL_THRESHOLD = 0;
+    AOA_getMaxValueThreshold_M = 0;
     float aoa = AOA_getAoa(aoaPlug, err);
 
-    aoaPlug->MAX_VAL_THRESHOLD = tmp;
+    AOA_getMaxValueThreshold_M = tmp;
     return (uint16_t)(aoa * 10000);
 }
 
@@ -470,17 +470,17 @@ void AOA_setThreshold(AOA_plug_S *aoaPlug, RF06_error_E *err) {
     uint8_t noise = 0;
     uint8_t i;
 
-    aoaPlug->threshold = AOA_NOISE_THRESHOLD;
+    AOA_getThreshold_M = AOA_NOISE_THRESHOLD;
 
-    AOA_readInputs(aoaPlug, aoaPlug->interf, err);
+    AOA_readInputs(aoaPlug, &AOA_getInterference1_M(0), err);
     if(*err != ERR_OK) return;
-    AOA_readInputs(aoaPlug, aoaPlug->interf2, err);
+    AOA_readInputs(aoaPlug, &AOA_getInterference2_M(0), err);
     if(*err != ERR_OK) return;
 
     for(i = 0; i < AOA_INPUTS_NUM; i ++) {
-        noise = aoaPlug->interf2[i] - aoaPlug->interf[i];
-        if(abs(noise) > aoaPlug->threshold) {
-            aoaPlug->threshold = abs(noise) + AOA_NOISE_THRESHOLD;
+        noise = AOA_getInterference2_M(i) - AOA_getInterference1_M(i);
+        if(abs(noise) > AOA_getThreshold_M) {
+            AOA_getThreshold_M = abs(noise) + AOA_NOISE_THRESHOLD;
         }
     }
 }

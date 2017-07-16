@@ -42,6 +42,7 @@
 void LED_init();
 void LED_turnOn();
 void LED_turnOff();
+void LED_toggle();
 
 /*******************************************************************************
  *                       END OF FILE

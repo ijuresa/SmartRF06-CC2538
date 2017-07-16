@@ -19,6 +19,7 @@ static AOA_plug_S aoaPlug;
 * @date   2017-05-15
 *******************************************************************************/
 int main(void) {
+    int i;
     // Clock
     SysCtrlClockSet(false, false, SYS_CTRL_SYSDIV_32MHZ);
 
@@ -29,7 +30,7 @@ int main(void) {
     INIT_uart();
 
 #if SERIAL_DEBUG
-    UARTprintf("Start/n");
+    UARTprintf("Start \n");
 #endif // SERIAL_DEBUG
 
     // Initialize delay
@@ -37,16 +38,12 @@ int main(void) {
                TIMER_0B_CONFIGURATION);
 
     LED_init();
-    LED_turnOn();
-
 
     // GPIO_PIN_1 is connected to LED1 (orange) -> Used only for testing
     // GPIO_PIN_0 is connected to LED0 (red)
     //      |
     //      --> Removed jumper, used for AOA
     // For reference: swru321b.pdf and swrr143.pdf
-
-    /*
 
     RF06_error_E err = ERR_OK;
     INIT_aoaPlug(&aoaPlug, AOA_PORT_NUMBER, &err);
@@ -55,29 +52,21 @@ int main(void) {
         UARTprintf("ERROR = %d", err);
 #endif // SERIAL_DEBUG
     }
-
+    uint16_t outputArray[AOA_INPUTS_NUM] = { 0 };
     // select - read
-
-
-    AOA_setThreshold(&aoaPlug, &err);
-    if(err != ERR_OK) {
+    AOA_readInputs(&aoaPlug, outputArray, &err);
 #if SERIAL_DEBUG
-        UARTprintf("ERROR = %d", err);
-#endif // SERIAL_DEBUG
+    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+        UARTprintf("Output %d = %d \n", i, outputArray[i]);
     }
-
-    uint16_t angle = AOA_getAoaInt(&aoaPlug, &err);
-    if(err != ERR_OK) {
-#if SERIAL_DEBUG
-        UARTprintf("ERROR = %s", err);
+        UARTprintf("ERROR = %d \n", err);
 #endif // SERIAL_DEBUG
-    }
 
-    // Print angle
-    UARTprintf("Angle = %d", angle);
-*/
     for(;;) {
+        LED_toggle();
+        delay_SysCtrlDelay(10666667);
 
+        AOA_readInputs(&aoaPlug, outputArray, &err);
     }
 
 }

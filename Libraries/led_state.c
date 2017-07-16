@@ -30,7 +30,9 @@ static inline void LED_digiWrite(uint8_t value) {
         // Set error
         return;
     }
-    GPIOPinWrite(LED_PORT_GPIO_BASE, LED_PDIO, LED_PDIO);
+    else if(value == SET_LOW) GPIOPinWrite(LED_PORT_GPIO_BASE, LED_PDIO, 0);
+    else GPIOPinWrite(LED_PORT_GPIO_BASE, LED_PDIO, LED_PDIO);
+
 }
 
 /*******************************************************************************
@@ -55,6 +57,20 @@ void LED_turnOff() {
     LED_digiWrite(SET_LOW);
 }
 
+/*******************************************************************************
+* @brief    Turn LED OFF
+********************************************************************************
+* @return   Nothing
+********************************************************************************
+* @date     2017-07-06
+*******************************************************************************/
+void LED_toggle() {
+    uint32_t toggle = GPIOPinRead(LED_PORT_GPIO_BASE, LED_PDIO);
+
+    toggle = ((~toggle) & LED_PDIO);
+
+    GPIOPinWrite(LED_PORT_GPIO_BASE, LED_PDIO, toggle);
+}
 
 /*******************************************************************************
 * @brief    Initialize digital pin for LEDs on CC2538
