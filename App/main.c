@@ -56,17 +56,26 @@ int main(void) {
     // select - read
     AOA_readInputs(&aoaPlug, outputArray, &err);
 #if SERIAL_DEBUG
+//    for(i = 0; i < AOA_INPUTS_NUM; i ++) {
+//        UARTprintf("Output %d = %d \n", i, outputArray[i]);
+//    }
+//        UARTprintf("ERROR = %d \n", err);
+#endif // SERIAL_DEBUG
+
+    // Turn ON Led on second AOA sensor
+    LED_turnOn();
+
+    for(;;) {
+        //LED_toggle();
+        delay_SysCtrlDelay(10666667);
+
+        AOA_readInputs(&aoaPlug, outputArray, &err);
+#if SERIAL_DEBUG
     for(i = 0; i < AOA_INPUTS_NUM; i ++) {
         UARTprintf("Output %d = %d \n", i, outputArray[i]);
     }
         UARTprintf("ERROR = %d \n", err);
 #endif // SERIAL_DEBUG
-
-    for(;;) {
-        LED_toggle();
-        delay_SysCtrlDelay(10666667);
-
-        AOA_readInputs(&aoaPlug, outputArray, &err);
     }
 
 }

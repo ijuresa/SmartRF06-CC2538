@@ -251,7 +251,6 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
     delay_SysCtrlDelay(533);
 
     // Select channel
-    // 0x10 - ?
     uint8_t data = 0x10 | (channel & 0x0F);
 
     // Disable interrupts
