@@ -40,11 +40,6 @@ static inline void digitalWrite(uint8_t portNumber, uint8_t value,
     else if (portNumber == AOA_PORT1) {
         GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO, value);
     }
-
-//    // Write to PORT2
-//    else {
-//        GPIOPinWrite(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO, value);
-//    }
 }
 
 /*******************************************************************************
@@ -245,7 +240,7 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
     if(*err != ERR_OK) return;
 
     // 50 microseconds delay
-    delay_SysCtrlDelay(533);
+    delay_SysCtrlDelay(DELAY_50US);
 
     // Select channel
     uint8_t data = 0x10 | (channel & 0x0F);
@@ -256,7 +251,7 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
     for(i = 0; i < 5; ++ i) {
         // Return value will be used as delay
         // 96 - 9us and 32 - 3us
-        uint8_t us = bitRead_M(data, 4 - i) ? 96 : 32;
+        uint8_t us = bitRead_M(data, 4 - i) ? DELAY_9_US : DELAY_3_US;
 
         // Check on which PORT AOA structure is set
         if(AOA_getPortNumber_M == AOA_PORT1) {
@@ -270,7 +265,7 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
         } else digitalWrite(AOA_PORT2, SET_LOW, err);
 
         // 4 microseconds delay
-        delay_SysCtrlDelay(43);
+        delay_SysCtrlDelay(DELAY_4_US);
     }
 
     // Enable interrupts
@@ -416,7 +411,7 @@ void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
         //TODO: return error code
 
         // 1ms
-        delay_SysCtrlDelay(10667);
+        delay_SysCtrlDelay(DELAY_1000_US);
         AOA_select(aoaPlug, i, err);
         // TODO: return error code
 
