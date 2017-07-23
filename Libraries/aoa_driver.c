@@ -58,9 +58,6 @@ static inline void INIT_Gpio() {
     // PORT1
     GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT1_PDIO);
 
-    // PORT2
-//    GPIOPinTypeGPIOOutput(AOA_PORTS_GPIO_BASE, AOA_PORT2_PDIO);
-
     // Initialize Analog GPIO
     // AOA -> PIN5 on RF2.5 PIN
     GPIOPinTypeGPIOOutput(ADC_PIN_BASE, ADC_PIN);
@@ -281,6 +278,27 @@ static inline void AOA_select(AOA_plug_S *aoaPlug, uint8_t channel,
 }
 
 /*******************************************************************************
+* @brief    ADC
+********************************************************************************
+* @param    i:               Channel on multiplexer
+* @param    *outputArray:    Array for data
+* @return   Nothing
+********************************************************************************
+* @date     2017-06-02
+*******************************************************************************/
+static inline void AOA_adcRead(uint8_t i, uint8_t *outputArray) {
+    // Trigger single conversion on PA6
+    SOCADCSingleStart(SOCADC_AIN6);
+
+    // Wait until conversion is completed
+    while(!SOCADCEndOfCOnversionGet()) { }
+
+    // Get data and shift
+    outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
+}
+
+
+/*******************************************************************************
 * PUBLIC FUNCTIONS
 *******************************************************************************/
 
@@ -405,14 +423,7 @@ void AOA_readInputs(AOA_plug_S *aoaPlug, uint16_t *outputArray,
         delay_SysCtrlDelay(AOA_SWITCH_DELAY);
 
         // Page 11. Analog pins driver doc
-        // Trigger single conversion on PA6
-        SOCADCSingleStart(SOCADC_AIN6);
-
-        // Wait until conversion is completed
-        while(!SOCADCEndOfCOnversionGet()) { }
-
-        // Get data and shift
-        outputArray[i] = SOCADCDataGet() >> SOCADC_10_BIT_RSHIFT;
+        AOA_adcRead(i, (uint8_t *)outputArray);
     }
 }
 

@@ -52,8 +52,8 @@
 #define ADC_PIN_BASE    GPIO_A_BASE
 
 // AOA Ports
-#define AOA_PORT1   1u
-#define AOA_PORT2   2u
+#define AOA_PORT1   1u  //!< Receiving side (bottom side) - phototransistor
+#define AOA_PORT2   2u  //!< Sending side   (top side) - photodiode
 
 #define PI 3.141592653589793238462643383
 
@@ -116,7 +116,6 @@ typedef struct AOA_plug_STRUCT {
  *                       GLOBAL AND STATIC VARIABLES
  ******************************************************************************/
 #ifdef AOA_DRIVER_C
-
     static void AOA_setValues(AOA_plug_S *aoaPlug, RF06_error_E *err);
     static uint16_t AOA_getMaxValue(AOA_plug_S *aoaPlug);
     static float AOA_calculateAoa(AOA_plug_S *aoaPlug);
@@ -131,10 +130,10 @@ typedef struct AOA_plug_STRUCT {
                              RF06_error_E *err);
     static void setGpioModeInput(uint8_t gpioPin, uint32_t gpioPort,
                                  RF06_error_E *err);
+    static void AOA_adcRead(uint8_t i, uint8_t *outputArray);
 
     static void INIT_Gpio();
-
-#endif
+#endif // AOA_DRIVER_C
 
 /*******************************************************************************
  *                       PUBLIC FUNCTION PROTOTYPES
